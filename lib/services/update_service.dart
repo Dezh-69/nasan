@@ -138,7 +138,8 @@ class UpdateService {
     }
   }
 
-  /// Compare version strings (semver) and build numbers
+  /// Compare version strings (semver only).
+  /// Build numbers are ignored — only major.minor.patch determines updates.
   static bool _isNewerVersion(
       String currentVersion, int currentBuild, String latestVersion, int latestBuild) {
     final currentParts = currentVersion.split('.').map((e) => int.tryParse(e) ?? 0).toList();
@@ -157,8 +158,8 @@ class UpdateService {
       if (latestParts[i] < currentParts[i]) return false;
     }
 
-    // Same version, check build number
-    return latestBuild > currentBuild;
+    // Same version — no update needed
+    return false;
   }
 
   /// Download the APK internally and trigger the native Android package installer
