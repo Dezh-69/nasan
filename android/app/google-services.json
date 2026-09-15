@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "209121328636",
+    "project_id": "nasan-a98e6",
+    "storage_bucket": "nasan-a98e6.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:209121328636:android:010006460c18f0d9674679",
+        "android_client_info": {
+          "package_name": "com.family.nasan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAw3CNHcfpP19HLDSLgnY74HEqT7FfQ9AY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
