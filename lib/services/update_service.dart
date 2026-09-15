@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:ota_update/ota_update.dart';
+import 'package:flutter/services.dart';
 
 /// Service that checks GitHub Releases for new APK versions
 /// and prompts the user to download and install updates.
@@ -164,20 +164,11 @@ class UpdateService {
   /// Download the APK internally and trigger the native Android package installer
   static Future<void> _downloadAndInstall(String apkUrl) async {
     try {
-      debugPrint('[UpdateService] Starting OTA download for $apkUrl');
-      OtaUpdate().execute(
-        apkUrl,
-        destinationFilename: 'nasan_update.apk',
-      ).listen(
-        (OtaEvent event) {
-          debugPrint('[UpdateService] OTA status: ${event.status} : ${event.value}');
-        },
-        onError: (err) {
-          debugPrint('[UpdateService] OTA Stream error: $err');
-        }
-      );
+      debugPrint('[UpdateService] Starting native OTA download for $apkUrl');
+      const platform = MethodChannel('com.family.nasan/ring');
+      await platform.invokeMethod('downloadAndInstallApk', {'url': apkUrl});
     } catch (e) {
-      debugPrint('[UpdateService] Failed to make OTA update: $e');
+      debugPrint('[UpdateService] Failed to start OTA update: $e');
     }
   }
 }

@@ -1,18 +1,68 @@
 package com.family.nasan
 
+import android.app.DownloadManager
+import android.content.BroadcastReceiver
+import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
+import android.net.Uri
 import android.os.Build
+import android.os.Environment
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
 
 class MainActivity: FlutterActivity() {
     private val CHANNEL = "com.family.nasan/ring"
+    private var downloadId: Long = -1
+
+    private val downloadReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            val id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
+            if (id == downloadId && id != -1L) {
+                val downloadManager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                val uri = downloadManager.getUriForDownloadedFile(downloadId)
+                if (uri != null) {
+                    val installIntent = Intent(Intent.ACTION_VIEW)
+                    installIntent.setDataAndType(uri, "application/vnd.android.package-archive")
+                    installIntent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_GRANT_READ_URI_PERMISSION
+                    startActivity(installIntent)
+                }
+            }
+        }
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(downloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE), Context.RECEIVER_EXPORTED)
+        } else {
+            registerReceiver(downloadReceiver, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
+        }
+
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, CHANNEL).setMethodCallHandler { call, result ->
-            if (call.method == "triggerRing") {
+            if (call.method == "downloadAndInstallApk") {
+                val url = call.argument<String>("url")
+                if (url != null) {
+                    try {
+                        val request = DownloadManager.Request(Uri.parse(url))
+                        request.setTitle("Nasan Update")
+                        request.setDescription("Downloading latest update...")
+                        request.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, "nasan_update.apk")
+                        request.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                        
+                        val manager = getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+                        downloadId = manager.enqueue(request)
+                        result.success(null)
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        result.error("DOWNLOAD_FAILED", e.message, null)
+                    }
+                } else {
+                    result.error("INVALID_URL", "URL cannot be null", null)
+                }
+            } else if (call.method == "triggerRing") {
                 triggerRing()
                 result.success(null)
             } else if (call.method == "stopRing") {
