@@ -172,9 +172,13 @@ class UpdateService {
         (OtaEvent event) {
           debugPrint('[UpdateService] OTA status: ${event.status} : ${event.value}');
         },
+        onError: (err) {
+          debugPrint('[UpdateService] OTA Stream error: $err');
+        }
       );
     } catch (e) {
       debugPrint('[UpdateService] Failed to make OTA update: $e');
     }
   }
 }
+
