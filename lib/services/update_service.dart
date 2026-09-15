@@ -32,34 +32,46 @@ class UpdateService {
       final packageInfo = await PackageInfo.fromPlatform();
       final currentVersion = packageInfo.version; // e.g., "1.0.0"
       final currentBuild = int.tryParse(packageInfo.buildNumber) ?? 0;
+      debugPrint('[UpdateService] Current app version: $currentVersion+$currentBuild');
 
       final response = await http.get(
         Uri.parse(_apiUrl),
         headers: {'Accept': 'application/vnd.github.v3+json'},
       );
 
-      if (response.statusCode != 200) return;
+      debugPrint('[UpdateService] GitHub API status: ${response.statusCode}');
+      if (response.statusCode != 200) {
+        debugPrint('[UpdateService] API returned non-200, aborting. Body: ${response.body}');
+        return;
+      }
 
       final data = jsonDecode(response.body);
       final latestTag = (data['tag_name'] as String?) ?? '';
       final releaseNotes = (data['body'] as String?) ?? 'Bug fixes and improvements.';
+      debugPrint('[UpdateService] Latest tag from GitHub: "$latestTag"');
 
       // Parse version and build from tag (e.g., "1.0.1+2" or "v1.0.1")
       final cleanTag = latestTag.replaceFirst(RegExp(r'^v'), '');
       final parts = cleanTag.split('+');
       final latestVersion = parts[0];
       final latestBuild = parts.length > 1 ? (int.tryParse(parts[1]) ?? 0) : 0;
+      debugPrint('[UpdateService] Parsed: latest=$latestVersion+$latestBuild vs current=$currentVersion+$currentBuild');
 
       if (!_isNewerVersion(currentVersion, currentBuild, latestVersion, latestBuild)) {
-        return; // Already up to date
+        debugPrint('[UpdateService] Already up to date, no update needed.');
+        return;
       }
+
+      debugPrint('[UpdateService] New version available! Looking for APK asset...');
 
       // Find APK download URL from release assets
       String? apkUrl;
       final assets = data['assets'] as List<dynamic>?;
+      debugPrint('[UpdateService] Number of release assets: ${assets?.length ?? 0}');
       if (assets != null) {
         for (final asset in assets) {
           final name = (asset['name'] as String?) ?? '';
+          debugPrint('[UpdateService] Asset: "$name"');
           if (name.endsWith('.apk')) {
             apkUrl = asset['browser_download_url'] as String?;
             break;
@@ -67,9 +79,19 @@ class UpdateService {
         }
       }
 
-      if (apkUrl == null) return; // No APK attached to this release
+      if (apkUrl == null) {
+        debugPrint('[UpdateService] No APK asset found in release, aborting.');
+        return;
+      }
 
-      if (!context.mounted) return;
+      debugPrint('[UpdateService] APK URL: $apkUrl');
+
+      if (!context.mounted) {
+        debugPrint('[UpdateService] Context no longer mounted, aborting dialog.');
+        return;
+      }
+
+      debugPrint('[UpdateService] Showing update dialog!');
 
       // Show update dialog
       showDialog(
@@ -112,7 +134,7 @@ class UpdateService {
         ),
       );
     } catch (e) {
-      debugPrint('Update check failed: $e');
+      debugPrint('[UpdateService] Update check FAILED with error: $e');
     }
   }
 
