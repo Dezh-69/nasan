@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'services/auth_service.dart';
-import 'services/update_service.dart';
 import 'screens/login_screen.dart';
 import 'screens/home_screen.dart';
 import 'theme.dart';
@@ -55,13 +54,6 @@ class _NasanAppState extends ConsumerState<NasanApp> {
           if (user == null) {
             return const LoginScreen();
           }
-          // Check for app updates once per session after login
-          WidgetsBinding.instance.addPostFrameCallback((_) {
-            if (context.mounted && !UpdateService.updateCheckedThisSession) {
-              UpdateService.updateCheckedThisSession = true;
-              UpdateService.checkForUpdate(context);
-            }
-          });
           return const HomeScreen();
         },
         loading: () => const Scaffold(

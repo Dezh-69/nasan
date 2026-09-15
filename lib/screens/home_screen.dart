@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../services/family_service.dart';
 import '../services/ring_service.dart';
 import '../services/auth_service.dart';
+import '../services/update_service.dart';
 import '../theme.dart';
 import 'settings_screen.dart';
 
@@ -46,6 +47,11 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(ringServiceProvider).requestPermissions();
+      // Check for app updates once per session
+      if (!UpdateService.updateCheckedThisSession) {
+        UpdateService.updateCheckedThisSession = true;
+        UpdateService.checkForUpdate(context);
+      }
     });
   }
 
