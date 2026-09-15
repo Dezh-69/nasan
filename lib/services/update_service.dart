@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:url_launcher/url_launcher.dart';
+import 'package:ota_update/ota_update.dart';
 
 /// Service that checks GitHub Releases for new APK versions
 /// and prompts the user to download and install updates.
@@ -161,11 +161,20 @@ class UpdateService {
     return latestBuild > currentBuild;
   }
 
-  /// Open the APK download URL in the browser, which triggers Android's install flow
+  /// Download the APK internally and trigger the native Android package installer
   static Future<void> _downloadAndInstall(String apkUrl) async {
-    final uri = Uri.parse(apkUrl);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    try {
+      debugPrint('[UpdateService] Starting OTA download for $apkUrl');
+      OtaUpdate().execute(
+        apkUrl,
+        destinationFilename: 'nasan_update.apk',
+      ).listen(
+        (OtaEvent event) {
+          debugPrint('[UpdateService] OTA status: ${event.status} : ${event.value}');
+        },
+      );
+    } catch (e) {
+      debugPrint('[UpdateService] Failed to make OTA update: $e');
     }
   }
 }

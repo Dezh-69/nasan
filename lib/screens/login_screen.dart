@@ -17,6 +17,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _displayNameController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _error;
   late AnimationController _animController;
   late Animation<double> _fadeAnim;
@@ -141,13 +142,24 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                   const SizedBox(height: 16),
                   TextField(
                     controller: _passwordController,
-                    decoration: const InputDecoration(
+                    decoration: InputDecoration(
                       hintText: 'Password',
                       prefixIcon:
-                          Icon(Icons.lock_outline, color: AppTheme.textSecondary),
+                          const Icon(Icons.lock_outline, color: AppTheme.textSecondary),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePassword
+                              ? Icons.visibility_off_rounded
+                              : Icons.visibility_rounded,
+                          color: AppTheme.textSecondary,
+                        ),
+                        onPressed: () {
+                          setState(() => _obscurePassword = !_obscurePassword);
+                        },
+                      ),
                     ),
                     style: const TextStyle(color: AppTheme.textPrimary),
-                    obscureText: true,
+                    obscureText: _obscurePassword,
                   ),
                   const SizedBox(height: 8),
                   if (_error != null)
