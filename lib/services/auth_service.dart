@@ -16,8 +16,8 @@ class AuthService {
 
   User? get currentUser => _auth.currentUser;
 
-  /// Register with username (stored as email: username@nasan.local) and password
-  Future<UserCredential> register(String username, String password, String displayName) async {
+  /// Register with username (stored as email: username@nasan.local), password, and optional phone number
+  Future<UserCredential> register(String username, String password, String displayName, {String? phoneNumber}) async {
     final email = '${username.toLowerCase().trim()}@nasan.local';
     final credential = await _auth.createUserWithEmailAndPassword(
       email: email,
@@ -33,6 +33,7 @@ class AuthService {
     await _firestore.collection('users').doc(credential.user!.uid).set({
       'displayName': displayName,
       'username': username.toLowerCase().trim(),
+      'phoneNumber': phoneNumber?.trim(), // Added phone number
       'fcmToken': fcmToken,
       'familyGroupIds': [],
       'createdAt': FieldValue.serverTimestamp(),

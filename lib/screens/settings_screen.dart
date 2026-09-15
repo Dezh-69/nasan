@@ -4,6 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import '../services/family_service.dart';
 import '../theme.dart';
 
 /// The key used in SharedPreferences to store the selected ringtone.
@@ -112,6 +115,55 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
     }
   }
 
+  Future<void> _editPhoneNumber(BuildContext context, String currentNumber) async {
+    final controller = TextEditingController(text: currentNumber);
+    final formKey = GlobalKey<FormState>();
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppTheme.surfaceDark,
+        title: const Text('Edit Phone Number'),
+        content: Form(
+          key: formKey,
+          child: TextFormField(
+            controller: controller,
+            decoration: const InputDecoration(
+              hintText: 'Phone Number',
+              prefixIcon: Icon(Icons.phone_rounded, color: AppTheme.textSecondary),
+            ),
+            keyboardType: TextInputType.phone,
+            style: const TextStyle(color: AppTheme.textPrimary),
+            validator: (value) => value == null || value.isEmpty ? 'Cannot be empty' : null,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (formKey.currentState!.validate()) {
+                Navigator.pop(ctx, controller.text.trim());
+              }
+            },
+            child: const Text('Save'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null && result != currentNumber) {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user != null) {
+        await FirebaseFirestore.instance.collection('users').doc(user.uid).update({
+          'phoneNumber': result,
+        });
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -123,6 +175,54 @@ class _SettingsScreenState extends ConsumerState<SettingsScreen> {
           : ListView(
               padding: const EdgeInsets.all(16),
               children: [
+                // Profile Section
+                Padding(
+                  padding: const EdgeInsets.only(left: 4, bottom: 12),
+                  child: Text(
+                    'PROFILE',
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: AppTheme.textSecondary,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                ),
+                Container(
+                  decoration: BoxDecoration(
+                    color: AppTheme.cardDark,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Consumer(
+                    builder: (context, ref, _) {
+                      final userAsync = ref.watch(userProvider);
+                      return userAsync.when(
+                        data: (userData) {
+                          final phoneNumber = userData?['phoneNumber'] as String? ?? 'Not set';
+                          return ListTile(
+                            leading: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: AppTheme.surfaceDark,
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              child: const Icon(Icons.phone_rounded, color: AppTheme.textSecondary, size: 20),
+                            ),
+                            title: const Text('Phone Number', style: TextStyle(color: AppTheme.textPrimary, fontSize: 15, fontWeight: FontWeight.w500)),
+                            subtitle: Text(phoneNumber, style: TextStyle(color: AppTheme.textSecondary.withValues(alpha: 0.7), fontSize: 12)),
+                            trailing: const Icon(Icons.edit_rounded, color: AppTheme.textSecondary, size: 20),
+                            onTap: () => _editPhoneNumber(context, userData?['phoneNumber'] ?? ''),
+                          );
+                        },
+                        loading: () => const ListTile(title: Text('Loading...')),
+                        error: (_, __) => const ListTile(title: Text('Error loading profile')),
+                      );
+                    },
+                  ),
+                ),
+                const SizedBox(height: 24),
+
                 // Section header
                 Padding(
                   padding: const EdgeInsets.only(left: 4, bottom: 12),

@@ -15,6 +15,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _displayNameController = TextEditingController();
+  final _phoneController = TextEditingController();
   bool _isLogin = true;
   bool _isLoading = false;
   bool _obscurePassword = true;
@@ -38,6 +39,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     _usernameController.dispose();
     _passwordController.dispose();
     _displayNameController.dispose();
+    _phoneController.dispose();
     _animController.dispose();
     super.dispose();
   }
@@ -60,6 +62,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
           _usernameController.text,
           _passwordController.text,
           _displayNameController.text,
+          phoneNumber: _phoneController.text.isNotEmpty ? _phoneController.text : null,
         );
       }
     } catch (e) {
@@ -125,6 +128,17 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
                       ),
                       style: const TextStyle(color: AppTheme.textPrimary),
                       textCapitalization: TextCapitalization.words,
+                    ),
+                    const SizedBox(height: 16),
+                    TextField(
+                      controller: _phoneController,
+                      decoration: const InputDecoration(
+                        hintText: 'Phone Number (Optional for SMS)',
+                        prefixIcon: Icon(Icons.phone_rounded,
+                            color: AppTheme.textSecondary),
+                      ),
+                      style: const TextStyle(color: AppTheme.textPrimary),
+                      keyboardType: TextInputType.phone,
                     ),
                     const SizedBox(height: 16),
                   ],
