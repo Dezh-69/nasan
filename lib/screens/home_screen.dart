@@ -522,6 +522,9 @@ class _HomeScreenState extends ConsumerState<HomeScreen>
     final uid = member['uid'] as String;
     final phoneNumber = member['phoneNumber'] as String?;
 
+    debugPrint('RING DEBUG: member data = $member');
+    debugPrint('RING DEBUG: phoneNumber = $phoneNumber');
+
     if (_useSmsMode && (phoneNumber == null || phoneNumber.isEmpty)) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

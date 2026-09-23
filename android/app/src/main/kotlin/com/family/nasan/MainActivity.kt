@@ -69,19 +69,68 @@ class MainActivity: FlutterActivity() {
                 stopRing()
                 result.success(null)
             } else if (call.method == "requestPermissions") {
-                // Not needed for direct service start
+                requestSmsPermissions()
                 result.success(null)
             } else if (call.method == "sendSms") {
                 val phoneNumber = call.argument<String>("phoneNumber")
                 val message = call.argument<String>("message")
                 if (phoneNumber != null && message != null) {
-                    val success = sendSms(phoneNumber, message)
-                    result.success(success)
+                    if (checkSelfPermission(android.Manifest.permission.SEND_SMS) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                        val success = sendSms(phoneNumber, message)
+                        result.success(success)
+                    } else {
+                        // Store pending SMS and request permission
+                        pendingSmsPhone = phoneNumber
+                        pendingSmsMessage = message
+                        pendingSmsResult = result
+                        requestPermissions(arrayOf(android.Manifest.permission.SEND_SMS), SMS_SEND_PERMISSION_CODE)
+                    }
                 } else {
                     result.error("INVALID_ARGS", "Phone number or message is null", null)
                 }
             } else {
                 result.notImplemented()
+            }
+        }
+    }
+
+    private var pendingSmsPhone: String? = null
+    private var pendingSmsMessage: String? = null
+    private var pendingSmsResult: io.flutter.plugin.common.MethodChannel.Result? = null
+
+    companion object {
+        private const val SMS_PERMISSION_CODE = 1001
+        private const val SMS_SEND_PERMISSION_CODE = 1002
+    }
+
+    private fun requestSmsPermissions() {
+        val permissions = arrayOf(
+            android.Manifest.permission.SEND_SMS,
+            android.Manifest.permission.RECEIVE_SMS,
+            android.Manifest.permission.READ_SMS
+        )
+        requestPermissions(permissions, SMS_PERMISSION_CODE)
+    }
+
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == SMS_SEND_PERMISSION_CODE) {
+            if (grantResults.isNotEmpty() && grantResults[0] == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                val phone = pendingSmsPhone
+                val message = pendingSmsMessage
+                val result = pendingSmsResult
+                pendingSmsPhone = null
+                pendingSmsMessage = null
+                pendingSmsResult = null
+                if (phone != null && message != null && result != null) {
+                    val success = sendSms(phone, message)
+                    result.success(success)
+                }
+            } else {
+                pendingSmsResult?.success(false)
+                pendingSmsPhone = null
+                pendingSmsMessage = null
+                pendingSmsResult = null
             }
         }
     }

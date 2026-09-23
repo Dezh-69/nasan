@@ -8,10 +8,26 @@ import android.util.Log
 class RingReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         Log.d("RingReceiver", "Received intent: ${intent.action}")
+
+        // Handle SMS-triggered alarm path
+        val smsAction = intent.getStringExtra(SmsReceiver.EXTRA_ACTION)
+        if (smsAction != null) {
+            Log.d("RingReceiver", "SMS alarm triggered with action: $smsAction")
+            when (smsAction) {
+                SmsReceiver.ACTION_RING -> startRingService(context)
+                SmsReceiver.ACTION_STOP -> stopRingService(context)
+            }
+            return
+        }
         
         if (intent.action == "com.google.android.c2dm.intent.RECEIVE") {
             val type = intent.getStringExtra("type")
             if (type == "ring") {
+                val senderUid = intent.getStringExtra("senderUid")
+                if (senderUid != null) {
+                    val prefs = context.getSharedPreferences("RingPrefs", Context.MODE_PRIVATE)
+                    prefs.edit().putString("lastSenderUid", senderUid).apply()
+                }
                 Log.d("RingReceiver", "FCM data 'type=ring' detected, starting RingService")
                 startRingService(context)
             } else if (type == "abort") {
@@ -40,3 +56,4 @@ class RingReceiver : BroadcastReceiver() {
         }
     }
 }
+

@@ -30,6 +30,12 @@ class _NasanAppState extends ConsumerState<NasanApp> {
     // Handle foreground messages
     FirebaseMessaging.onMessage.listen((RemoteMessage message) {
       debugPrint('Got a message whilst in the foreground!');
+      if (message.data['type'] == 'abort') {
+        final senderUid = message.data['senderUid'];
+        if (senderUid != null) {
+          ref.read(ringingMembersProvider.notifier).remove(senderUid);
+        }
+      }
       // Note: We no longer call triggerLocalRing() here because the native 
       // RingReceiver intercepts the FCM broadcast and handles it automatically 
       // in all app states, preventing double-ringing.

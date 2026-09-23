@@ -55,13 +55,15 @@ final familyMembersProvider = StreamProvider.family<List<Map<String, dynamic>>, 
     final otherMemberIds = memberIds.where((id) => id != currentUid).toList();
     if (otherMemberIds.isEmpty) return [];
 
-    final snapshot = await FirebaseFirestore.instance
-        .collection('users')
-        .where(FieldPath.documentId, whereIn: otherMemberIds)
-        .get();
+    // Use snapshots via get(source) with server to ensure fresh data
+    final futures = otherMemberIds.map((id) =>
+      FirebaseFirestore.instance.collection('users').doc(id as String).get()
+    );
+    final docs = await Future.wait(futures);
 
-    return snapshot.docs
-        .map((doc) => {'uid': doc.id, ...doc.data()})
+    return docs
+        .where((doc) => doc.exists)
+        .map((doc) => {'uid': doc.id, ...doc.data()!})
         .toList();
   });
 });

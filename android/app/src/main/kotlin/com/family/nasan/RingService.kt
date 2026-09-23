@@ -169,8 +169,39 @@ class RingService : Service() {
             
             // Finish RingActivity if it's open (we can broadcast to it)
             sendBroadcast(Intent(RingActivity.ACTION_FINISH_ACTIVITY))
+
+            notifySenderRingStopped()
         } catch (e: Exception) {
             Log.e("RingService", "Error stopping ring", e)
+        }
+    }
+
+    private fun notifySenderRingStopped() {
+        val prefs = getSharedPreferences("RingPrefs", Context.MODE_PRIVATE)
+        val senderUid = prefs.getString("lastSenderUid", null) ?: return
+        
+        // Don't send multiple times
+        prefs.edit().remove("lastSenderUid").apply()
+
+        try {
+            val engine = io.flutter.embedding.engine.FlutterEngine(applicationContext)
+            val entrypoint = io.flutter.embedding.engine.dart.DartExecutor.DartEntrypoint(
+                io.flutter.FlutterInjector.instance().flutterLoader().findAppBundlePath(),
+                "backgroundStopRing"
+            )
+            engine.dartExecutor.executeDartEntrypoint(entrypoint)
+            
+            val channel = io.flutter.plugin.common.MethodChannel(engine.dartExecutor.binaryMessenger, "com.family.nasan/ring_background")
+            
+            android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                channel.invokeMethod("sendAbort", mapOf("targetUid" to senderUid))
+                
+                android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({
+                    engine.destroy()
+                }, 5000)
+            }, 1000)
+        } catch (e: Exception) {
+            Log.e("RingService", "Failed to start Flutter engine in background", e)
         }
     }
 
